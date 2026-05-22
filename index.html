@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مختصر الروابط ومولد QR</title>
+    <title>مختصر الروابط السحابي الذكي و QR</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body { 
@@ -56,6 +56,7 @@
             margin: 5px 0; 
             color: #0366d6; 
             font-weight: bold; 
+            direction: ltr;
         }
         #qrcode { display: flex; justify-content: center; margin-top: 15px; }
         .loading { font-size: 18px; color: #666; font-weight: bold; }
@@ -64,13 +65,13 @@
 <body>
 
 <div class="container" id="main-container">
-    <h2>مختصر الروابط السحابي</h2>
-    <p style="color:#666; font-size:14px;">يتم حفظ الروابط في Firebase للحصول على رابط قصير جداً</p>
-    <input type="url" id="longUrl" placeholder="ضع الرابط هنا..." required>
-    <button id="genBtn">توليد رابط قصير جداً والـ QR</button>
+    <h2>مختصر الروابط فائق القصر</h2>
+    <p style="color:#666; font-size:14px;">يتم التخزين في سحابة Firebase وإنتاج روابط قصيرة جداً ورموز QR واضحة</p>
+    <input type="url" id="longUrl" placeholder="ضع الرابط الطويل هنا..." required>
+    <button id="genBtn">توليد رابط فائق القصر والـ QR</button>
 
     <div class="result" id="resultBox">
-        <strong style="font-size:14px;">الرابط المختصر القصير:</strong>
+        <strong style="font-size:14px;">الرابط المختصر النظيف:</strong>
         <div id="shortenedLink"></div>
         <button id="copyBtn" style="background-color: #0366d6; padding: 8px; font-size: 14px;">نسخ الرابط</button>
         <div id="qrcode"></div>
@@ -81,7 +82,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // إعدادات سحابتك الخاصة المعطاة بالكامل
+    // إعدادات سحابة Firebase (youy-apps)
     const firebaseConfig = {
         apiKey: "AIzaSyAVrIim7aXjg0hGrMk0qVrXT8gaRIpHoBk",
         authDomain: "youy-apps.firebaseapp.com",
@@ -93,26 +94,42 @@
         measurementId: "G-LL8PGM8G8E"
     };
 
-    // تهيئة Firebase والـ Realtime Database
+    // تهيئة السحابة
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
 
-    // دالة لتوليد معرف عشوائي قصير جداً (5 خانات فقط)
+    // توليد معرف عشوائي فريد من 4 حروف فقط لتقصير الرابط لأقصى درجة
     function generateRandomId() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         let result = '';
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 4; i++) {
             result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         return result;
     }
 
-    // 1. نظام التحويل التلقائي عند فتح الرابط المختصر
-    const urlParams = new URLSearchParams(window.location.search);
-    const id = urlParams.get('id');
+    // 1. قراءة المسار الذكي وفك تشفير الرابط المختصر تلقائياً
+    const path = window.location.pathname;
+    const segments = path.split('/').filter(Boolean);
+    let id = null;
 
+    if (segments.length > 0) {
+        const lastSegment = segments[segments.length - 1];
+        // إذا كان آخر جزء في الرابط ليس اسم المجلد الفرعي (N)، فهو إذن الرمز العشوائي للمقصد
+        if (lastSegment !== 'N') {
+            id = lastSegment;
+        }
+    }
+
+    // نظام فحص احتياطي في حال استخدمت الطريقة القديمة عبر ?id=
+    if (!id) {
+        const urlParams = new URLSearchParams(window.location.search);
+        id = urlParams.get('id');
+    }
+
+    // تحويل الزائر فوراً إذا عُثر على معرف الرابط المختصر
     if (id) {
-        document.getElementById('main-container').innerHTML = '<div class="loading">جاري قراءة الرابط من السحابة والتحويل...</div>';
+        document.getElementById('main-container').innerHTML = '<div class="loading">جاري قراءة الرابط وتحويلك سحابياً...</div>';
         
         const dbRef = ref(database);
         get(child(dbRef, `short_urls/${id}`)).then((snapshot) => {
@@ -123,62 +140,65 @@
                 }
                 window.location.href = targetUrl;
             } else {
-                document.getElementById('main-container').innerHTML = '<div class="loading" style="color:red;">الرابط غير موجود أو منتهي الصلاحية!</div>';
+                document.getElementById('main-container').innerHTML = '<div class="loading" style="color:red;">عذراً، هذا الرابط غير مسجل بالسحابة أو تم حذفه!</div>';
             }
         }).catch(() => {
-            document.getElementById('main-container').innerHTML = '<div class="loading" style="color:red;">خطأ في الاتصال بسحابة Firebase.</div>';
+            document.getElementById('main-container').innerHTML = '<div class="loading" style="color:red;">خطأ في الاتصال بقاعدة البيانات.</div>';
         });
     }
 
-    // 2. دالة توليد الرابط وحفظه في فرع خاص بالسحابة
+    // 2. دالة إرسال الرابط للسحابة وتوليد الرابط النظيف الجديد
     document.getElementById('genBtn').addEventListener('click', () => {
         const longUrl = document.getElementById('longUrl').value.trim();
         if (!longUrl) {
-            alert('الرجاء إدخال رابط أولاً');
+            alert('الرجاء كتابة أو لصق الرابط أولاً');
             return;
         }
 
         const btn = document.getElementById('genBtn');
         btn.disabled = true;
-        btn.innerText = "جاري التوصيل بالسحابة...";
+        btn.innerText = "جاري التخزين الرقمي السحابي...";
 
         const shortId = generateRandomId();
 
-        // حفظ البيانات في فرع جديد اسمه short_urls داخل السحابة
+        // التخزين السحابي دون التأثير على باقي فروع الـ Database الحالية
         set(ref(database, 'short_urls/' + shortId), {
             longUrl: longUrl,
             createdAt: Date.now()
         })
         .then(() => {
             const baseUrl = window.location.origin + window.location.pathname;
-            const shortUrl = `${baseUrl}?id=${shortId}`;
+            const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+            // دمج المسار مباشرة ليكون بالشكل الرائع والمختصر: /N/gu9m
+            const shortUrl = `${cleanBaseUrl}${shortId}`;
 
             document.getElementById('shortenedLink').innerText = shortUrl;
             document.getElementById('resultBox').style.display = 'block';
 
-            // مسح الـ QR القديم وتوليد الجديد
+            // مسح الـ QR القديم ورسم الجديد بدقة عالية للرابط الصغير
             document.getElementById('qrcode').innerHTML = '';
             new QRCode(document.getElementById("qrcode"), {
                 text: shortUrl,
-                width: 160,
-                height: 160
+                width: 170,
+                height: 170,
+                correctLevel : QRCode.CorrectLevel.M
             });
 
             btn.disabled = false;
             btn.innerText = "توليد رابط قصير جداً والـ QR";
         })
         .catch((error) => {
-            alert("فشل الحفظ في السحابة: " + error.message);
+            alert("فشل في معالجة البيانات السحابية: " + error.message);
             btn.disabled = false;
             btn.innerText = "توليد رابط قصير جداً والـ QR";
         });
     });
 
-    // دالة نسخ الرابط للمستخدم
+    // دالة النسخ السريع بلمسة واحدة
     document.getElementById('copyBtn').addEventListener('click', () => {
         const linkText = document.getElementById('shortenedLink').innerText;
         navigator.clipboard.writeText(linkText).then(() => {
-            alert('تم نسخ الرابط بنجاح!');
+            alert('تم نسخ الرابط المختصر بنجاح!');
         });
     });
 </script>
