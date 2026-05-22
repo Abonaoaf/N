@@ -3,138 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مختصر الروابط والـ QR العام المستقر</title>
+    <title>مختصر الروابط ومولد QR</title>
+    <!-- مكتبة توليد الـ QR Code -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
     <style>
-        :root {
-            --primary-blue: #0d47a1;
-            --school-red: #ba0000;
-            --bg-color: #f8fafc;
-        }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--bg-color);
-            display: flex; justify-content: center; align-items: center;
-            min-height: 100vh; margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
         }
-
         .container {
-            background: white; padding: 2.5rem; border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-            width: 90%; max-width: 400px; text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
         }
-
-        input {
-            width: 100%; padding: 14px; border: 2px solid #e2e8f0;
-            border-radius: 10px; margin-bottom: 20px; font-size: 1rem;
-            text-align: left; direction: ltr; outline: none; box-sizing: border-box;
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-size: 16px;
         }
-
-        .btn {
-            background: var(--primary-blue); color: white; border: none;
-            padding: 14px; border-radius: 10px; cursor: pointer;
-            width: 100%; font-weight: bold; font-size: 1rem; margin-bottom: 10px;
-            transition: background 0.3s ease;
+        button {
+            background-color: #2ea44f;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
         }
-        .btn:hover { background: #0a3c8c; }
-
-        #resultArea { margin-top: 25px; display: none; }
-
-        #qrcode { 
-            display: flex; justify-content: center; margin: 20px 0;
+        button:hover { background-color: #2c974b; }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eef9f1;
+            border-radius: 6px;
+            display: none;
+            word-break: break-all;
         }
-        #qrcode img {
-            border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px;
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
         }
-
-        .short-url-text {
-            margin: 15px 0; font-weight: bold; color: #2563eb; font-size: 1.1rem; word-break: break-all; direction: ltr; text-align: center;
-        }
-
-        .signature {
-            margin-top: 25px; font-weight: bold; color: var(--school-red); font-size: 0.9rem;
-        }
+        .loading { font-size: 18px; color: #666; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>مختصر الروابط والـ QR العام 🔗</h2>
-    <p style="color: #64748b; margin-bottom: 25px; font-size: 0.95rem;">أداة الاختصار والـ QR المستقلة</p>
+<div class="container" id="main-container">
+    <h2>مختصر الروابط ومولد QR</h2>
+    <p>أدخل الرابط الطويل للحصول على رابط مختصر ورمز QR</p>
+    <input type="url" id="longUrl" placeholder="https://example.com/very-long-link..." required>
+    <button onclick="generateShortLink()">توليد الرابط والـ QR</button>
 
-    <input type="url" id="longUrl" placeholder="ضع أي رابط في العالم هنا..." required>
-    <button class="btn" onclick="generateStableShortUrl()">اختصار وتوليد الرمز فوراً</button>
-
-    <div id="resultArea">
+    <div class="result" id="resultBox">
+        <strong>الرابط المختصر:</strong>
+        <p id="shortenedLink"></p>
+        <button onclick="copyLink()" style="background-color: #0366d6;">نسخ الرابط</button>
         <div id="qrcode"></div>
-        <div id="shortUrl" class="short-url-text"></div>
-        
-        <button class="btn" style="background:#10b981;" onclick="copyLink()">نسخ الرابط المختصر</button>
-        <button class="btn" style="background:#4b5563;" onclick="downloadQR()">حفظ صورة الرمز</button>
-    </div>
-
-    <div class="signature">
-        ✨ أ / عبد العزيز الفيفي - ثانوية الأمير عبدالمجيد 🎓
     </div>
 </div>
 
 <script>
-    // محرك التوجيه الفوري: يقرأ الرابط من بعد علامة الهاش ويفتح الوجهة مباشرة وبثبات تام
-    window.onload = function() {
-        const hash = window.location.hash;
-        if (hash && hash.startsWith('#/')) {
-            const targetUrl = hash.substring(2);
-            if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
-                window.location.replace(targetUrl);
-            }
+    // 1. نظام إعادة التوجيه التلقائي
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetUrl = urlParams.get('to');
+
+    if (targetUrl) {
+        // تغيير واجهة الصفحة لتظهر للمستخدم أنه جاري الانتقال
+        document.getElementById('main-container').innerHTML = '<div class="loading">جاري تحويلك للرابط المطلوب...</div>';
+        // التحقق من وجود البروتوكول وإعادة التوجيه
+        if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+            window.location.href = targetUrl;
+        } else {
+            window.location.href = 'https://' + targetUrl;
         }
     }
 
-    function generateStableShortUrl() {
-        const urlInput = document.getElementById('longUrl').value.trim();
-        if (!urlInput) return alert("فضلاً ضع الرابط أولاً");
-        if (!urlInput.startsWith('http://') && !urlInput.startsWith('https://')) {
-            return alert("تأكد من أن الرابط يبدأ بـ http:// أو https://");
+    // 2. دالة توليد الرابط القصير والـ QR
+    let qrcode = null;
+    function generateShortLink() {
+        const longUrl = document.getElementById('longUrl').value.trim();
+        if (!longUrl) {
+            alert('الرجاء إدخال رابط صحيح');
+            return;
         }
 
-        // بناء الرابط القصير النظيف المتوافق تماماً مع جيت هاب هرباً من خطأ 404
-        const currentBase = window.location.href.split('#')[0];
-        const finalShortLink = `${currentBase}#/${urlInput}`;
+        // الحصول على رابط موقعك الحالي على GitHub Pages
+        const baseUrl = window.location.href.split('?')[0];
+        
+        // صناعة الرابط المختصر باستخدام المقصد (to)
+        const shortUrl = `${baseUrl}?to=${encodeURIComponent(longUrl)}`;
 
-        document.getElementById('shortUrl').innerText = finalShortLink;
-        document.getElementById('resultArea').style.display = 'block';
+        // عرض النتائج
+        document.getElementById('shortenedLink').innerText = shortUrl;
+        document.getElementById('resultBox').style.display = 'block';
 
-        // رسم الـ QR كلاسيكياً فوراً وبثبات 100%
-        const qrDiv = document.getElementById("qrcode");
-        qrDiv.innerHTML = "";
-        new QRCode(qrDiv, {
-            text: finalShortLink,
-            width: 200,
-            height: 200,
+        // توليد الـ QR Code
+        document.getElementById('qrcode').innerHTML = '';
+        qrcode = new QRCode(document.getElementById("qrcode"), {
+            text: shortUrl,
+            width: 180,
+            height: 180,
             colorDark : "#000000",
             colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.M
+            correctLevel : QRCode.CorrectLevel.H
         });
     }
 
+    // دالة نسخ الرابط
     function copyLink() {
-        navigator.clipboard.writeText(document.getElementById('shortUrl').innerText);
-        alert("تم نسخ الرابط المختصر بنجاح!");
+        const linkText = document.getElementById('shortenedLink').innerText;
+        navigator.clipboard.writeText(linkText).then(() => {
+            alert('تم نسخ الرابط المختصر بنجاح!');
+        });
     }
-
-    function downloadQR() {
-        const img = document.querySelector('#qrcode img');
-        if (img) {
-            const link = document.createElement('a');
-            link.href = img.src;
-            link.download = 'Stable_QR.png';
-            link.click();
-        }
-    }
-
-    console.log("برمجة وتصميم: أ/ عبدالعزيز الفيفي");
 </script>
 
 </body>
