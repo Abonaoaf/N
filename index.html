@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مختصر روابط القدرات والـ QR الثابت</title>
+    <title>مختصر الروابط والـ QR العام المستقر</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
@@ -50,7 +50,7 @@
         }
 
         .short-url-text {
-            margin: 15px 0; font-weight: bold; color: #2563eb; font-size: 1.1rem; word-break: break-all; direction: ltr; text-align: center;
+            margin: 15px 0; font-weight: bold; color: #2563eb; font-size: 1rem; word-break: break-all; direction: ltr; text-align: center;
         }
 
         .signature {
@@ -61,11 +61,11 @@
 <body>
 
 <div class="container">
-    <h2>مختصر روابط القدرات والـ QR الذكي 🔗</h2>
-    <p style="color: #64748b; margin-bottom: 25px; font-size: 0.95rem;">ثانوية الأمير عبدالمجيد</p>
+    <h2>مختصر الروابط والـ QR العام 🔗</h2>
+    <p style="color: #64748b; margin-bottom: 25px; font-size: 0.95rem;">أداة الاختصار والـ QR المستقلة</p>
 
-    <input type="text" id="modelName" placeholder="اكتب اسم ملف الموديل فقط (مثال: reading4)" required>
-    <button class="btn" onclick="makeCleanShortAndQR()">اختصار وتوليد الرمز فوراً</button>
+    <input type="url" id="longUrl" placeholder="ضع أي رابط في العالم هنا..." required>
+    <button class="btn" onclick="generateUniversalShortUrl()">اختصار وتوليد الرمز فوراً</button>
 
     <div id="resultArea">
         <div id="qrcode"></div>
@@ -81,48 +81,62 @@
 </div>
 
 <script>
-    // الرابط الأساسي الثابت لمستودع ملفات اختباراتك
-    const BASE_REPOSITORIES_URL = "https://school1school2-stack.github.io/ABO-TAIF/";
-
-    // محرك التوجيه الفوري الآمن: بمجرد دخول الطالب يوجهه فوراً لرابط مستودع الأسئلة الحقيقي
+    // محرك التوجيه الفوري العام: يشتغل عند فتح الرابط من أي مكان في العالم ليفك الشفرة ويوجه فوراً
     window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
-        const pageParam = urlParams.get('p');
+        const targetParam = urlParams.get('url');
         
-        if (pageParam) {
-            // تركيب الرابط الحقيقي للموديل فوراً والتحويل إليه دون أي وسيط
-            const destinationUrl = `${BASE_REPOSITORIES_URL}${pageParam}.html`;
-            window.location.replace(destinationUrl);
+        if (targetParam) {
+            try {
+                // استرجاع الرابط الأصلي المكبوس وفك تشفيره بأمان
+                let cleanBase64 = targetParam.replace(/-/g, '+').replace(/_/g, '/');
+                while (cleanBase64.length % 4) { cleanBase64 += '='; }
+                const decodedUrl = decodeURIComponent(escape(atob(cleanBase64)));
+                
+                if (decodedUrl.startsWith('http://') || decodedUrl.startsWith('https://')) {
+                    window.location.replace(decodedUrl);
+                }
+            } catch (e) {
+                alert("عذراً، الرابط المختصر غير صحيح أو تالف.");
+            }
         }
     }
 
-    function makeCleanShortAndQR() {
-        let inputTarget = document.getElementById('modelName').value.trim();
-        if (!inputTarget) return alert("فضلاً اكتب اسم الموديل أولاً");
-
-        // تنظيف المدخلات لو قمت بلصق رابط كامل بالخطأ ليأخذ اسم الملف فقط
-        if (inputTarget.includes("/")) {
-            inputTarget = inputTarget.substring(inputTarget.lastIndexOf('/') + 1).replace(".html", "");
+    function generateUniversalShortUrl() {
+        const urlInput = document.getElementById('longUrl').value.trim();
+        if (!urlInput) return alert("فضلاً ضع الرابط أولاً");
+        if (!urlInput.startsWith('http://') && !urlInput.startsWith('https://')) {
+            return alert("تأكد من أن الرابط يبدأ بـ http:// أو https://");
         }
 
-        // إنشاء الرابط المختصر الحقيقي والنظيف الخاص بموقعك الحالي
-        const currentBase = window.location.href.split('?')[0];
-        const finalShortLink = `${currentBase}?p=${inputTarget}`;
+        try {
+            // كبس وتشفير الرابط بالكامل محلياً
+            let base64 = btoa(encodeURIComponent(urlInput));
+            // تنظيف النص تماماً من الرموز (مثل / و + و =) التي تسبب خطأ 404 في المتصفحات
+            let safeBase64 = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-        document.getElementById('shortUrl').innerText = finalShortLink;
-        document.getElementById('resultArea').style.display = 'block';
+            const currentBase = window.location.href.split('?')[0];
+            // رابط قصير، نظيف ومحمي تماماً
+            const finalShortLink = `${currentBase}?url=${safeBase64}`;
 
-        // رسم الـ QR Code محلياً وثبات كامل 100%
-        const qrDiv = document.getElementById("qrcode");
-        qrDiv.innerHTML = "";
-        new QRCode(qrDiv, {
-            text: finalShortLink,
-            width: 200,
-            height: 200,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.M
-        });
+            document.getElementById('shortUrl').innerText = finalShortLink;
+            document.getElementById('resultArea').style.display = 'block';
+
+            // رسم الـ QR كلاسيكياً فوراً وبثبات 100%
+            const qrDiv = document.getElementById("qrcode");
+            qrDiv.innerHTML = "";
+            new QRCode(qrDiv, {
+                text: finalShortLink,
+                width: 200,
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.M
+            });
+
+        } catch (e) {
+            alert("حدث خطأ أثناء الاختصار الفوري.");
+        }
     }
 
     function copyLink() {
@@ -135,12 +149,12 @@
         if (img) {
             const link = document.createElement('a');
             link.href = img.src;
-            link.download = 'Majeed_School_QR.png';
+            link.download = 'Universal_QR.png';
             link.click();
         }
     }
 
-    console.log("برمجة وحماية الملكية: أ/ عبدالعزيز الفيفي - ثانوية الأمير عبدالمجيد");
+    console.log("الملكية الفكرية: أ/ عبدالعزيز الفيفي");
 </script>
 
 </body>
