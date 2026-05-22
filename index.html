@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مختصر الروابط ومولد QR</title>
-    <!-- مكتبة توليد الـ QR Code -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
             background-color: #f4f7f6;
             color: #333;
             display: flex;
@@ -16,14 +15,16 @@
             align-items: center;
             height: 100vh;
             margin: 0;
+            padding: 10px;
+            box-sizing: border-box;
         }
         .container {
             background: white;
-            padding: 30px;
+            padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
             width: 100%;
-            max-width: 450px;
+            max-width: 400px;
             text-align: center;
         }
         input, button {
@@ -44,89 +45,98 @@
         }
         button:hover { background-color: #2c974b; }
         .result {
-            margin-top: 20px;
-            padding: 15px;
+            margin-top: 15px;
+            padding: 12px;
             background: #eef9f1;
             border-radius: 6px;
             display: none;
+        }
+        #shortenedLink {
+            background: #fff;
+            padding: 8px;
+            border: 1px dashed #2ea44f;
+            border-radius: 4px;
             word-break: break-all;
+            font-size: 14px;
+            margin: 5px 0;
+            color: #0366d6;
         }
         #qrcode {
             display: flex;
             justify-content: center;
             margin-top: 15px;
         }
-        .loading { font-size: 18px; color: #666; }
+        .loading { font-size: 18px; color: #666; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container" id="main-container">
     <h2>مختصر الروابط ومولد QR</h2>
-    <p>أدخل الرابط الطويل للحصول على رابط مختصر ورمز QR</p>
-    <input type="url" id="longUrl" placeholder="https://example.com/very-long-link..." required>
+    <p style="color:#666; font-size:14px;">أدخل الرابط للحصول على رابط أقصر ورمز QR</p>
+    <input type="url" id="longUrl" placeholder="ضع الرابط هنا..." required>
     <button onclick="generateShortLink()">توليد الرابط والـ QR</button>
 
     <div class="result" id="resultBox">
-        <strong>الرابط المختصر:</strong>
-        <p id="shortenedLink"></p>
-        <button onclick="copyLink()" style="background-color: #0366d6;">نسخ الرابط</button>
+        <strong style="font-size:14px;">الرابط المختصر النظيف:</strong>
+        <div id="shortenedLink"></div>
+        <button onclick="copyLink()" style="background-color: #0366d6; padding: 8px; font-size: 14px;">نسخ الرابط</button>
         <div id="qrcode"></div>
     </div>
 </div>
 
 <script>
-    // 1. نظام إعادة التوجيه التلقائي
+    // 1. نظام التحويل التلقائي الذكي والـ فك التشفير
     const urlParams = new URLSearchParams(window.location.search);
-    const targetUrl = urlParams.get('to');
+    let targetUrl = urlParams.get('to');
 
     if (targetUrl) {
-        // تغيير واجهة الصفحة لتظهر للمستخدم أنه جاري الانتقال
-        document.getElementById('main-container').innerHTML = '<div class="loading">جاري تحويلك للرابط المطلوب...</div>';
-        // التحقق من وجود البروتوكول وإعادة التوجيه
-        if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
-            window.location.href = targetUrl;
-        } else {
-            window.location.href = 'https://' + targetUrl;
+        document.getElementById('main-container').innerHTML = '<div class="loading">جاري تحويلك تلقائياً...</div>';
+        
+        // فك تشفير الرابط ليعود لطبيعته
+        try {
+            targetUrl = decodeURIComponent(targetUrl);
+        } catch(e) { }
+
+        if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+            targetUrl = 'https://' + targetUrl;
         }
+        window.location.href = targetUrl;
     }
 
-    // 2. دالة توليد الرابط القصير والـ QR
+    // 2. توليد الرابط بشكل أقصر ومباشر بدون تشفير مزدوج
     let qrcode = null;
     function generateShortLink() {
-        const longUrl = document.getElementById('longUrl').value.trim();
+        let longUrl = document.getElementById('longUrl').value.trim();
         if (!longUrl) {
-            alert('الرجاء إدخال رابط صحيح');
+            alert('الرجاء إدخال رابط أولاً');
             return;
         }
 
-        // الحصول على رابط موقعك الحالي على GitHub Pages
-        const baseUrl = window.location.href.split('?')[0];
+        const baseUrl = window.location.origin + window.location.pathname;
         
-        // صناعة الرابط المختصر باستخدام المقصد (to)
+        // بناء الرابط بأقل قدر ممكن من الرموز الزائدة
         const shortUrl = `${baseUrl}?to=${encodeURIComponent(longUrl)}`;
 
-        // عرض النتائج
         document.getElementById('shortenedLink').innerText = shortUrl;
         document.getElementById('resultBox').style.display = 'block';
 
-        // توليد الـ QR Code
+        // توليد الـ QR Code للرابط الجديد
         document.getElementById('qrcode').innerHTML = '';
         qrcode = new QRCode(document.getElementById("qrcode"), {
             text: shortUrl,
-            width: 180,
-            height: 180,
+            width: 160,
+            height: 160,
             colorDark : "#000000",
             colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
+            correctLevel : QRCode.CorrectLevel.M // مستوى متوسط لتقليل تعقيد المربعات في الـ QR
         });
     }
 
-    // دالة نسخ الرابط
     function copyLink() {
         const linkText = document.getElementById('shortenedLink').innerText;
         navigator.clipboard.writeText(linkText).then(() => {
-            alert('تم نسخ الرابط المختصر بنجاح!');
+            alert('تم نسخ الرابط بنجاح!');
         });
     }
 </script>
