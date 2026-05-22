@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مختصر الروابط والـ QR المستقر 100%</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --primary-blue: #0d47a1;
+            --school-red: #ba0000;
+            --bg-color: #f8fafc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-color);
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0;
+        }
+
+        .container {
+            background: white; padding: 2.5rem; border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            width: 90%; max-width: 400px; text-align: center;
+        }
+
+        input {
+            width: 100%; padding: 14px; border: 2px solid #e2e8f0;
+            border-radius: 10px; margin-bottom: 20px; font-size: 1rem;
+            text-align: left; direction: ltr; outline: none; box-sizing: border-box;
+        }
+
+        .btn {
+            background: var(--primary-blue); color: white; border: none;
+            padding: 14px; border-radius: 10px; cursor: pointer;
+            width: 100%; font-weight: bold; font-size: 1rem; margin-bottom: 10px;
+            transition: background 0.3s ease;
+        }
+        .btn:hover { background: #0a3c8c; }
+
+        #resultArea { margin-top: 25px; display: none; }
+
+        #qrcode { 
+            display: flex; justify-content: center; margin: 20px 0;
+        }
+        #qrcode img {
+            border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+
+        .short-url-text {
+            margin: 15px 0; font-weight: bold; color: #2563eb; font-size: 1.1rem; word-break: break-all; direction: ltr; text-align: center;
+        }
+
+        .signature {
+            margin-top: 25px; font-weight: bold; color: var(--school-red); font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>مختصر الروابط والـ QR المستقر 🔗</h2>
+    <p style="color: #64748b; margin-bottom: 25px; font-size: 0.95rem;">ثانوية الأمير عبدالمجيد</p>
+
+    <input type="url" id="longUrl" placeholder="ضع رابط الموديل هنا..." required>
+    <button class="btn" onclick="makeCleanShortAndQR()">اختصار وتوليد الرمز فورا</button>
+
+    <div id="resultArea">
+        <div id="qrcode"></div>
+        <div id="shortUrl" class="short-url-text"></div>
+        
+        <button class="btn" style="background:#10b981;" onclick="copyLink()">نسخ الرابط المختصر</button>
+        <button class="btn" style="background:#4b5563;" onclick="downloadQR()">حفظ صورة الرمز</button>
+    </div>
+
+    <div class="signature">
+        ✨ أ / عبد العزيز الفيفي - ثانوية الأمير عبدالمجيد 🎓
+    </div>
+</div>
+
+<script>
+    // جدول التوجيه الداخلي الذكي لروابطك (أضف روابطك هنا دائماً لتوجيه الطلاب تلقائياً)
+    const schoolRoutes = {
+        "An1": "https://abonaoaf.github.io/An1/",
+        "reading4": "https://school1school2-stack.github.io/ABO-TAIF/reading4.html"
+    };
+
+    // محرك التوجيه فوري القراءة: بمجرد دخول الطالب للرابط المختصر يوجهه بلمحة بصر
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pageParam = urlParams.get('p');
+        
+        if (pageParam) {
+            const destination = schoolRoutes[pageParam];
+            if (destination) {
+                window.location.replace(destination);
+            }
+        }
+    }
+
+    function makeCleanShortAndQR() {
+        const urlInput = document.getElementById('longUrl').value.trim();
+        if (!urlInput) return alert("فضلاً ضع الرابط أولاً");
+
+        let key = "";
+        
+        // استخلاص اسم الموديل الذكي لتقصير الرابط لأقصى درجة ممكنة هرباً من الروابط الطويلة
+        if (urlInput.includes(".github.io/")) {
+            const parts = urlInput.split(".github.io/")[1].split('/');
+            key = parts[0] || parts[1];
+        } else {
+            // إذا كان رابطاً مختلفاً نأخذ آخر جزء منه كرمز مختصر
+            const cleanText = urlInput.replace(/\/$/, "");
+            key = cleanText.substring(cleanText.lastIndexOf('/') + 1).split('.')[0];
+        }
+
+        // حفظ الرابط تلقائياً في جدول التوجيه المؤقت للجلسة الحالية
+        schoolRoutes[key] = urlInput;
+
+        // الرابط المختصر الفعلي: قصير جداً ونظيف تماماً بدون أي تشفير عملاق
+        const currentBase = window.location.href.split('?')[0];
+        const finalShortLink = `${currentBase}?p=${key}`;
+
+        document.getElementById('shortUrl').innerText = finalShortLink;
+        document.getElementById('resultArea').style.display = 'block';
+
+        // رسم الـ QR Code كلاسيكياً عادياً محلياً وبثبات 100%
+        const qrDiv = document.getElementById("qrcode");
+        qrDiv.innerHTML = "";
+        new QRCode(qrDiv, {
+            text: finalShortLink,
+            width: 200,
+            height: 200,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.M
+        });
+    }
+
+    function copyLink() {
+        navigator.clipboard.writeText(document.getElementById('shortUrl').innerText);
+        alert("تم نسخ الرابط المختصر بنجاح!");
+    }
+
+    function downloadQR() {
+        const img = document.querySelector('#qrcode img');
+        if (img) {
+            const link = document.createElement('a');
+            link.href = img.src;
+            link.download = 'Majeed_School_QR.png';
+            link.click();
+        }
+    }
+
+    console.log("برمجة وحماية الملكية: أ/ عبدالعزيز الفيفي - ثانوية الأمير عبدالمجيد");
+</script>
+
+</body>
+</html>
