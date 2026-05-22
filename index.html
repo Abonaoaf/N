@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مختصر الروابط والـ QR المستقر 100%</title>
+    <title>مختصر روابط القدرات والـ QR الثابت</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
@@ -46,7 +46,7 @@
             display: flex; justify-content: center; margin: 20px 0;
         }
         #qrcode img {
-            border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px;
         }
 
         .short-url-text {
@@ -61,11 +61,11 @@
 <body>
 
 <div class="container">
-    <h2>مختصر الروابط والـ QR المستقر 🔗</h2>
+    <h2>مختصر روابط القدرات والـ QR الذكي 🔗</h2>
     <p style="color: #64748b; margin-bottom: 25px; font-size: 0.95rem;">ثانوية الأمير عبدالمجيد</p>
 
-    <input type="url" id="longUrl" placeholder="ضع رابط الموديل هنا..." required>
-    <button class="btn" onclick="makeCleanShortAndQR()">اختصار وتوليد الرمز فورا</button>
+    <input type="text" id="modelName" placeholder="اكتب اسم ملف الموديل فقط (مثال: reading4)" required>
+    <button class="btn" onclick="makeCleanShortAndQR()">اختصار وتوليد الرمز فوراً</button>
 
     <div id="resultArea">
         <div id="qrcode"></div>
@@ -81,52 +81,38 @@
 </div>
 
 <script>
-    // جدول التوجيه الداخلي الذكي لروابطك (أضف روابطك هنا دائماً لتوجيه الطلاب تلقائياً)
-    const schoolRoutes = {
-        "An1": "https://abonaoaf.github.io/An1/",
-        "reading4": "https://school1school2-stack.github.io/ABO-TAIF/reading4.html"
-    };
+    // الرابط الأساسي الثابت لمستودع ملفات اختباراتك
+    const BASE_REPOSITORIES_URL = "https://school1school2-stack.github.io/ABO-TAIF/";
 
-    // محرك التوجيه فوري القراءة: بمجرد دخول الطالب للرابط المختصر يوجهه بلمحة بصر
+    // محرك التوجيه الفوري الآمن: بمجرد دخول الطالب يوجهه فوراً لرابط مستودع الأسئلة الحقيقي
     window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
         const pageParam = urlParams.get('p');
         
         if (pageParam) {
-            const destination = schoolRoutes[pageParam];
-            if (destination) {
-                window.location.replace(destination);
-            }
+            // تركيب الرابط الحقيقي للموديل فوراً والتحويل إليه دون أي وسيط
+            const destinationUrl = `${BASE_REPOSITORIES_URL}${pageParam}.html`;
+            window.location.replace(destinationUrl);
         }
     }
 
     function makeCleanShortAndQR() {
-        const urlInput = document.getElementById('longUrl').value.trim();
-        if (!urlInput) return alert("فضلاً ضع الرابط أولاً");
+        let inputTarget = document.getElementById('modelName').value.trim();
+        if (!inputTarget) return alert("فضلاً اكتب اسم الموديل أولاً");
 
-        let key = "";
-        
-        // استخلاص اسم الموديل الذكي لتقصير الرابط لأقصى درجة ممكنة هرباً من الروابط الطويلة
-        if (urlInput.includes(".github.io/")) {
-            const parts = urlInput.split(".github.io/")[1].split('/');
-            key = parts[0] || parts[1];
-        } else {
-            // إذا كان رابطاً مختلفاً نأخذ آخر جزء منه كرمز مختصر
-            const cleanText = urlInput.replace(/\/$/, "");
-            key = cleanText.substring(cleanText.lastIndexOf('/') + 1).split('.')[0];
+        // تنظيف المدخلات لو قمت بلصق رابط كامل بالخطأ ليأخذ اسم الملف فقط
+        if (inputTarget.includes("/")) {
+            inputTarget = inputTarget.substring(inputTarget.lastIndexOf('/') + 1).replace(".html", "");
         }
 
-        // حفظ الرابط تلقائياً في جدول التوجيه المؤقت للجلسة الحالية
-        schoolRoutes[key] = urlInput;
-
-        // الرابط المختصر الفعلي: قصير جداً ونظيف تماماً بدون أي تشفير عملاق
+        // إنشاء الرابط المختصر الحقيقي والنظيف الخاص بموقعك الحالي
         const currentBase = window.location.href.split('?')[0];
-        const finalShortLink = `${currentBase}?p=${key}`;
+        const finalShortLink = `${currentBase}?p=${inputTarget}`;
 
         document.getElementById('shortUrl').innerText = finalShortLink;
         document.getElementById('resultArea').style.display = 'block';
 
-        // رسم الـ QR Code كلاسيكياً عادياً محلياً وبثبات 100%
+        // رسم الـ QR Code محلياً وثبات كامل 100%
         const qrDiv = document.getElementById("qrcode");
         qrDiv.innerHTML = "";
         new QRCode(qrDiv, {
