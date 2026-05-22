@@ -6,139 +6,181 @@
     <title>مختصر الروابط ومولد QR</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            padding: 10px;
-            box-sizing: border-box;
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            background-color: #f4f7f6; 
+            color: #333; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            padding: 10px; 
+            box-sizing: border-box; 
         }
-        .container {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
+        .container { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
         }
-        input, button {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-            font-size: 16px;
+        input, button { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            border-radius: 6px; 
+            border: 1px solid #ccc; 
+            box-sizing: border-box; 
+            font-size: 16px; 
         }
-        button {
-            background-color: #2ea44f;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
+        button { 
+            background-color: #2ea44f; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: bold; 
         }
         button:hover { background-color: #2c974b; }
-        .result {
-            margin-top: 15px;
-            padding: 12px;
-            background: #eef9f1;
-            border-radius: 6px;
-            display: none;
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .result { margin-top: 15px; padding: 12px; background: #eef9f1; border-radius: 6px; display: none; }
+        #shortenedLink { 
+            background: #fff; 
+            padding: 8px; 
+            border: 1px dashed #2ea44f; 
+            border-radius: 4px; 
+            word-break: break-all; 
+            font-size: 16px; 
+            margin: 5px 0; 
+            color: #0366d6; 
+            font-weight: bold; 
         }
-        #shortenedLink {
-            background: #fff;
-            padding: 8px;
-            border: 1px dashed #2ea44f;
-            border-radius: 4px;
-            word-break: break-all;
-            font-size: 14px;
-            margin: 5px 0;
-            color: #0366d6;
-        }
-        #qrcode {
-            display: flex;
-            justify-content: center;
-            margin-top: 15px;
-        }
+        #qrcode { display: flex; justify-content: center; margin-top: 15px; }
         .loading { font-size: 18px; color: #666; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container" id="main-container">
-    <h2>مختصر الروابط ومولد QR</h2>
-    <p style="color:#666; font-size:14px;">أدخل الرابط للحصول على رابط أقصر ورمز QR</p>
+    <h2>مختصر الروابط السحابي</h2>
+    <p style="color:#666; font-size:14px;">يتم حفظ الروابط في Firebase للحصول على رابط قصير جداً</p>
     <input type="url" id="longUrl" placeholder="ضع الرابط هنا..." required>
-    <button onclick="generateShortLink()">توليد الرابط والـ QR</button>
+    <button id="genBtn">توليد رابط قصير جداً والـ QR</button>
 
     <div class="result" id="resultBox">
-        <strong style="font-size:14px;">الرابط المختصر النظيف:</strong>
+        <strong style="font-size:14px;">الرابط المختصر القصير:</strong>
         <div id="shortenedLink"></div>
-        <button onclick="copyLink()" style="background-color: #0366d6; padding: 8px; font-size: 14px;">نسخ الرابط</button>
+        <button id="copyBtn" style="background-color: #0366d6; padding: 8px; font-size: 14px;">نسخ الرابط</button>
         <div id="qrcode"></div>
     </div>
 </div>
 
-<script>
-    // 1. نظام التحويل التلقائي الذكي والـ فك التشفير
-    const urlParams = new URLSearchParams(window.location.search);
-    let targetUrl = urlParams.get('to');
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    if (targetUrl) {
-        document.getElementById('main-container').innerHTML = '<div class="loading">جاري تحويلك تلقائياً...</div>';
-        
-        // فك تشفير الرابط ليعود لطبيعته
-        try {
-            targetUrl = decodeURIComponent(targetUrl);
-        } catch(e) { }
+    // إعدادات سحابتك الخاصة المعطاة بالكامل
+    const firebaseConfig = {
+        apiKey: "AIzaSyAVrIim7aXjg0hGrMk0qVrXT8gaRIpHoBk",
+        authDomain: "youy-apps.firebaseapp.com",
+        databaseURL: "https://youy-apps-default-rtdb.firebaseio.com",
+        projectId: "youy-apps",
+        storageBucket: "youy-apps.firebasestorage.app",
+        messagingSenderId: "690543747528",
+        appId: "1:690543747528:web:10c85ef0c93b79596620fd",
+        measurementId: "G-LL8PGM8G8E"
+    };
 
-        if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-            targetUrl = 'https://' + targetUrl;
+    // تهيئة Firebase والـ Realtime Database
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+
+    // دالة لتوليد معرف عشوائي قصير جداً (5 خانات فقط)
+    function generateRandomId() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < 5; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
-        window.location.href = targetUrl;
+        return result;
     }
 
-    // 2. توليد الرابط بشكل أقصر ومباشر بدون تشفير مزدوج
-    let qrcode = null;
-    function generateShortLink() {
-        let longUrl = document.getElementById('longUrl').value.trim();
+    // 1. نظام التحويل التلقائي عند فتح الرابط المختصر
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+
+    if (id) {
+        document.getElementById('main-container').innerHTML = '<div class="loading">جاري قراءة الرابط من السحابة والتحويل...</div>';
+        
+        const dbRef = ref(database);
+        get(child(dbRef, `short_urls/${id}`)).then((snapshot) => {
+            if (snapshot.exists()) {
+                let targetUrl = snapshot.val().longUrl;
+                if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                    targetUrl = 'https://' + targetUrl;
+                }
+                window.location.href = targetUrl;
+            } else {
+                document.getElementById('main-container').innerHTML = '<div class="loading" style="color:red;">الرابط غير موجود أو منتهي الصلاحية!</div>';
+            }
+        }).catch(() => {
+            document.getElementById('main-container').innerHTML = '<div class="loading" style="color:red;">خطأ في الاتصال بسحابة Firebase.</div>';
+        });
+    }
+
+    // 2. دالة توليد الرابط وحفظه في فرع خاص بالسحابة
+    document.getElementById('genBtn').addEventListener('click', () => {
+        const longUrl = document.getElementById('longUrl').value.trim();
         if (!longUrl) {
             alert('الرجاء إدخال رابط أولاً');
             return;
         }
 
-        const baseUrl = window.location.origin + window.location.pathname;
-        
-        // بناء الرابط بأقل قدر ممكن من الرموز الزائدة
-        const shortUrl = `${baseUrl}?to=${encodeURIComponent(longUrl)}`;
+        const btn = document.getElementById('genBtn');
+        btn.disabled = true;
+        btn.innerText = "جاري التوصيل بالسحابة...";
 
-        document.getElementById('shortenedLink').innerText = shortUrl;
-        document.getElementById('resultBox').style.display = 'block';
+        const shortId = generateRandomId();
 
-        // توليد الـ QR Code للرابط الجديد
-        document.getElementById('qrcode').innerHTML = '';
-        qrcode = new QRCode(document.getElementById("qrcode"), {
-            text: shortUrl,
-            width: 160,
-            height: 160,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.M // مستوى متوسط لتقليل تعقيد المربعات في الـ QR
+        // حفظ البيانات في فرع جديد اسمه short_urls داخل السحابة
+        set(ref(database, 'short_urls/' + shortId), {
+            longUrl: longUrl,
+            createdAt: Date.now()
+        })
+        .then(() => {
+            const baseUrl = window.location.origin + window.location.pathname;
+            const shortUrl = `${baseUrl}?id=${shortId}`;
+
+            document.getElementById('shortenedLink').innerText = shortUrl;
+            document.getElementById('resultBox').style.display = 'block';
+
+            // مسح الـ QR القديم وتوليد الجديد
+            document.getElementById('qrcode').innerHTML = '';
+            new QRCode(document.getElementById("qrcode"), {
+                text: shortUrl,
+                width: 160,
+                height: 160
+            });
+
+            btn.disabled = false;
+            btn.innerText = "توليد رابط قصير جداً والـ QR";
+        })
+        .catch((error) => {
+            alert("فشل الحفظ في السحابة: " + error.message);
+            btn.disabled = false;
+            btn.innerText = "توليد رابط قصير جداً والـ QR";
         });
-    }
+    });
 
-    function copyLink() {
+    // دالة نسخ الرابط للمستخدم
+    document.getElementById('copyBtn').addEventListener('click', () => {
         const linkText = document.getElementById('shortenedLink').innerText;
         navigator.clipboard.writeText(linkText).then(() => {
             alert('تم نسخ الرابط بنجاح!');
         });
-    }
+    });
 </script>
 
 </body>
