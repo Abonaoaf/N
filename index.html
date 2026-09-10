@@ -13,7 +13,7 @@
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            height: 100vh; 
+            min-height: 100vh; 
             margin: 0; 
             padding: 10px; 
             box-sizing: border-box; 
@@ -57,7 +57,18 @@
             color: #0366d6; 
             font-weight: bold; 
         }
-        #qrcode { display: flex; justify-content: center; margin-top: 15px; }
+        #qrcode { 
+            display: flex; 
+            justify-content: center; 
+            margin-top: 15px; 
+        }
+        /* تحجيم عرض الـ QR في الشاشة ليكون مناسباً وصغيراً */
+        #qrcode canvas, #qrcode img {
+            width: 160px !important;
+            height: 160px !important;
+            max-width: 100%;
+            height: auto;
+        }
         .loading { font-size: 18px; color: #666; font-weight: bold; }
     </style>
 </head>
@@ -161,8 +172,8 @@
             document.getElementById('qrcode').innerHTML = '';
             new QRCode(document.getElementById("qrcode"), {
                 text: shortUrl,
-                width: 160,
-                height: 160
+                width: 256, // يتم توليدها بدقة عالية تناسب الطباعة والتنزيل
+                height: 256
             });
 
             btn.disabled = false;
@@ -183,29 +194,41 @@
         });
     });
 
-    // دالة حفظ الـ QR كصورة
+    // دالة حفظ الـ QR بحجم مناسب ومعتدل (تصغير الصورة عند الحفظ)
     document.getElementById('saveQrBtn').addEventListener('click', () => {
         const qrContainer = document.getElementById('qrcode');
         const canvas = qrContainer.querySelector('canvas');
         const img = qrContainer.querySelector('img');
 
-        let imageUrl = '';
-        if (canvas) {
-            imageUrl = canvas.toDataURL('image/png');
-        } else if (img) {
-            imageUrl = img.src;
+        if (!canvas && !img) {
+            alert('الرجاء توليد رمز الاستجابة السريعة أولاً.');
+            return;
         }
 
-        if (imageUrl) {
-            const link = document.createElement('a');
-            link.href = imageUrl;
-            link.download = 'qrcode.png';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } else {
-            alert('الرجاء توليد رمز الاستجابة السريعة أولاً.');
-        }
+        // إنشاء نافذة رسم مؤقتة (Canvas) بحجم معتدل وثابت ومريح (مثلاً 300x300 بكسل)
+        const targetSize = 300;
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = targetSize;
+        tempCanvas.height = targetSize;
+        const ctx = tempCanvas.getContext('2d');
+
+        // تعبئة خلفية بيضاء لتفادي الشفافية السوداء في بعض الأجهزة
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, targetSize, targetSize);
+
+        const sourceElement = canvas || img;
+
+        // رسم الصورة بالحجم الجديد الصغير داخل الـ Canvas المؤقت
+        ctx.drawImage(sourceElement, 0, 0, targetSize, targetSize);
+
+        // تحويل الـ Canvas إلى رابط تنزيل بصيغة PNG بحجم مناسب
+        const imageUrl = tempCanvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = 'qrcode.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     });
 </script>
 
