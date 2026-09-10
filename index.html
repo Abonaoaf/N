@@ -74,6 +74,7 @@
         <div id="shortenedLink"></div>
         <button id="copyBtn" style="background-color: #0366d6; padding: 8px; font-size: 14px;">نسخ الرابط</button>
         <div id="qrcode"></div>
+        <button id="saveQrBtn" style="background-color: #6f42c1; padding: 8px; font-size: 14px;">حفظ QR كصورة</button>
     </div>
 </div>
 
@@ -180,6 +181,31 @@
         navigator.clipboard.writeText(linkText).then(() => {
             alert('تم نسخ الرابط بنجاح!');
         });
+    });
+
+    // دالة حفظ الـ QR كصورة
+    document.getElementById('saveQrBtn').addEventListener('click', () => {
+        const qrContainer = document.getElementById('qrcode');
+        const canvas = qrContainer.querySelector('canvas');
+        const img = qrContainer.querySelector('img');
+
+        let imageUrl = '';
+        if (canvas) {
+            imageUrl = canvas.toDataURL('image/png');
+        } else if (img) {
+            imageUrl = img.src;
+        }
+
+        if (imageUrl) {
+            const link = document.createElement('a');
+            link.href = imageUrl;
+            link.download = 'qrcode.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else {
+            alert('الرجاء توليد رمز الاستجابة السريعة أولاً.');
+        }
     });
 </script>
 
